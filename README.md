@@ -1,3 +1,8 @@
+<div align=center>
+		<img src="https://raw.githubusercontent.com/Animated-Java/animated-java/refs/heads/main/src/assets/icons/animated_java_fancy_icon_centered.svg" alt="Animated Java Icon" width="180px">
+	<br/>
+</div>
+
 <div align="center">
 
 # Build Animated Java Models
@@ -8,7 +13,7 @@
 
 ---
 
-It provisions Blockbench, installs Animated Java, and runs every `.ajblueprint`
+This action provisions Blockbench, installs Animated Java, and runs every `.ajblueprint`
 under a folder through the exporter the same way clicking **Export** does — so a
 pull request can verify that every blueprint still builds, and a release can
 publish the generated data pack / resource pack.
