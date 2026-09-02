@@ -1,0 +1,43 @@
+# Example: build every Animated Java blueprint in a repo on push / PR.
+#
+# Copy this into a consumer repo as `.github/workflows/build-models.yml`.
+
+name: Build Animated Java models
+
+on:
+    push:
+        branches: [main]
+    pull_request:
+    workflow_dispatch:
+
+jobs:
+    build:
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v4
+
+            # Blockbench and the target Minecraft assets are downloaded on the first
+            # run and cached under ~/.envbench; caching keeps later runs fast.
+            - name: Cache Blockbench
+              uses: actions/cache@v4
+              with:
+                  path: ~/.envbench
+                  key: envbench-${{ runner.os }}-blockbench-latest
+
+            - name: Build models
+              id: aj
+              uses: Animated-Java/animated-java-ci@v1
+              with:
+                  blueprints-path: models
+                  # version: v1.10.2          # pin Animated Java (default: latest)
+                  # blockbench-version: 5.1.6  # pin Blockbench (default: latest)
+
+            - name: Upload exported packs
+              uses: actions/upload-artifact@v4
+              with:
+                  name: animated-java-output
+                  path: |
+                      models/**/resourcepack/**
+                      models/**/datapack/**
+
+            - run: echo "Exported ${{ steps.aj.outputs.exported-count }} blueprint(s)"

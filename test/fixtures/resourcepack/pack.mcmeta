@@ -1,0 +1,10 @@
+{
+	"pack": {
+		"pack_format": 55,
+		"description": "animated-java-ci test resource pack",
+		"supported_formats": {
+			"min_inclusive": 55,
+			"max_inclusive": 55
+		}
+	}
+}

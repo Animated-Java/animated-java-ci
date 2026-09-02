@@ -1,0 +1,86 @@
+name: 'Build Animated Java Models'
+description: 'Headlessly export Animated Java blueprints with Blockbench, in CI.'
+author: 'Animated Java'
+
+branding:
+    icon: 'box'
+    color: 'orange'
+
+inputs:
+    blueprints-path:
+        description: 'Folder searched recursively for .ajblueprint files to export.'
+        required: true
+    version:
+        description: "Animated Java version to install: 'latest' or a release tag (e.g. v1.10.2)."
+        required: false
+        default: 'latest'
+    plugin-path:
+        description: 'Path to a local animated_java.js to load instead of downloading a release.'
+        required: false
+        default: ''
+    blockbench-version:
+        description: "Blockbench version to provision: 'latest', 'beta', or an exact x.y.z."
+        required: false
+        default: 'latest'
+    fail-fast:
+        description: 'Stop at the first blueprint that fails to export.'
+        required: false
+        default: 'true'
+    check-relative-paths:
+        description: >-
+            Fail a blueprint whose resource/data pack paths are absolute rather than
+            relative to the blueprint file (they would export outside the repo, or fail).
+        required: false
+        default: 'true'
+    export-timeout:
+        description: 'Seconds allowed per blueprint (the first export also downloads Minecraft assets).'
+        required: false
+        default: '300'
+    github-token:
+        description: 'Token for GitHub API calls when resolving release assets.'
+        required: false
+        default: ${{ github.token }}
+
+outputs:
+    exported-count:
+        description: 'Number of blueprints exported successfully.'
+        value: ${{ steps.build.outputs.exported-count }}
+    failed-count:
+        description: 'Number of blueprints that failed.'
+        value: ${{ steps.build.outputs.failed-count }}
+    results:
+        description: 'JSON array of per-blueprint results ({ blueprint, path, status, stage, errors, durationMs }).'
+        value: ${{ steps.build.outputs.results }}
+
+runs:
+    using: 'composite'
+    steps:
+        - name: Install Xvfb
+          shell: bash
+          run: |
+              if command -v xvfb-run >/dev/null 2>&1; then
+                echo "xvfb-run already present"
+              elif command -v apt-get >/dev/null 2>&1; then
+                sudo apt-get update
+                sudo apt-get install -y --no-install-recommends xvfb
+              else
+                echo "::error::xvfb-run is not installed and apt-get is unavailable. This action requires a Linux runner."
+                exit 1
+              fi
+
+        - name: Build Animated Java models
+          id: build
+          shell: bash
+          working-directory: ${{ github.workspace }}
+          env:
+              INPUT_BLUEPRINTS_PATH: ${{ inputs.blueprints-path }}
+              INPUT_VERSION: ${{ inputs.version }}
+              INPUT_PLUGIN_PATH: ${{ inputs.plugin-path }}
+              INPUT_BLOCKBENCH_VERSION: ${{ inputs.blockbench-version }}
+              INPUT_FAIL_FAST: ${{ inputs.fail-fast }}
+              INPUT_CHECK_RELATIVE_PATHS: ${{ inputs.check-relative-paths }}
+              INPUT_EXPORT_TIMEOUT: ${{ inputs.export-timeout }}
+              GITHUB_TOKEN: ${{ inputs.github-token }}
+              # The AppImage self-mounts through FUSE, which most CI images lack; unpack instead.
+              APPIMAGE_EXTRACT_AND_RUN: '1'
+          run: xvfb-run -a node "$GITHUB_ACTION_PATH/dist/index.cjs"

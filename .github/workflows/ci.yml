@@ -1,0 +1,56 @@
+name: CI
+
+on:
+    push:
+        branches: [main]
+    pull_request:
+    workflow_dispatch:
+
+jobs:
+    check:
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v4
+            - uses: oven-sh/setup-bun@v2
+
+            - run: bun install --frozen-lockfile
+            - run: bun run typecheck
+            - run: bun test
+            - run: bun run check-formatting
+
+            - name: dist/ is up to date
+              run: |
+                  bun run build
+                  if ! git diff --quiet -- dist/; then
+                    echo "::error::dist/ is stale - run 'bun run build' and commit the result"
+                    git diff -- dist/
+                    exit 1
+                  fi
+
+    e2e:
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v4
+
+            - name: Cache Blockbench
+              uses: actions/cache@v4
+              with:
+                  path: ~/.envbench
+                  key: envbench-${{ runner.os }}-blockbench-latest
+
+            - name: Run the action against the test fixtures
+              id: build
+              uses: ./
+              with:
+                  blueprints-path: test/fixtures/models
+
+            - name: Check results
+              env:
+                  EXPORTED: ${{ steps.build.outputs.exported-count }}
+                  FAILED: ${{ steps.build.outputs.failed-count }}
+              run: |
+                  echo "exported=$EXPORTED failed=$FAILED"
+                  test "$EXPORTED" = "1"
+                  test "$FAILED" = "0"
+                  test -f test/fixtures/datapack/data/aj/function/armor_stand/summon.mcfunction
+                  test -d test/fixtures/resourcepack/assets/aj/models/blueprint/armor_stand

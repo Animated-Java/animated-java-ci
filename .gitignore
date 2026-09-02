@@ -1,0 +1,11 @@
+node_modules/
+*.log
+.DS_Store
+
+# Local end-to-end test scratch
+/test/.out/
+
+# Export output written into the fixtures by an e2e run
+/test/fixtures/**/data/
+/test/fixtures/**/assets/
+/test/fixtures/**/*.ajmeta
