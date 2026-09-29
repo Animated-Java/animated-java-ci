@@ -9,8 +9,8 @@ import * as log from './log'
 
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms))
 
-/** Fixed envbench environment name - one isolated Blockbench install for the action. */
-const ENVIRONMENT = 'animated-java-ci'
+/** Default envbench environment name - one isolated Blockbench install for the action. */
+const DEFAULT_ENVIRONMENT = 'animated-java-ci'
 
 export interface RunningBlockbench {
 	debugPort: number
@@ -46,12 +46,16 @@ function numericSemver(a: string, b: string): number {
  * Ensure the isolated Blockbench environment exists (downloading Blockbench on
  * first use) and return the path to its portable executable.
  */
-async function ensurePortable(eb: Envbench, blockbenchVersion: string): Promise<string> {
-	if ((await eb.environmentExists(ENVIRONMENT)) !== 'env') {
+async function ensurePortable(
+	eb: Envbench,
+	environment: string,
+	blockbenchVersion: string
+): Promise<string> {
+	if ((await eb.environmentExists(environment)) !== 'env') {
 		log.info(`Provisioning Blockbench (${blockbenchVersion}) via envbench...`)
 		let lastPercent = -1
 		await eb.createEnvironment(
-			ENVIRONMENT,
+			environment,
 			{ blockbenchVersion: blockbenchVersion as NamedBlockbenchVersion, force: true },
 			{
 				onDownloadStart: version => log.info(`Downloading Blockbench ${version}`),
@@ -66,7 +70,7 @@ async function ensurePortable(eb: Envbench, blockbenchVersion: string): Promise<
 		)
 	}
 
-	const env = await eb.getEnvironment(ENVIRONMENT)
+	const env = await eb.getEnvironment(environment)
 	let version: ResolvedBlockbenchVersion | '' = ''
 	try {
 		version = await eb.resolveVersion(env.blockbench_version)
@@ -91,11 +95,16 @@ async function ensurePortable(eb: Envbench, blockbenchVersion: string): Promise<
  * Launch Blockbench with the Chrome DevTools Protocol enabled and wait until its
  * endpoint answers. The caller is expected to already be running under
  * `xvfb-run` (the action wrapper does this) so no window appears.
+ *
+ * `environment` names the isolated envbench install, so separate tools don't share one.
  */
-export async function launchBlockbench(blockbenchVersion: string): Promise<RunningBlockbench> {
+export async function launchBlockbench(
+	blockbenchVersion: string,
+	environment = DEFAULT_ENVIRONMENT
+): Promise<RunningBlockbench> {
 	const eb = new Envbench()
 	await eb.ensureStorageFolder()
-	const userDataDir = join(eb.storageDir, ENVIRONMENT)
+	const userDataDir = join(eb.storageDir, environment)
 
 	// Clear a stale Chromium singleton lock a previously hard-killed run may have left.
 	await killByUserData(userDataDir)
@@ -107,11 +116,11 @@ export async function launchBlockbench(blockbenchVersion: string): Promise<Runni
 		}
 	}
 
-	await ensurePortable(eb, blockbenchVersion)
+	await ensurePortable(eb, environment, blockbenchVersion)
 	grantFsPermission(userDataDir, 'animated_java')
 	const debugPort = await getFreePort()
 
-	const child = await eb.launch(ENVIRONMENT, {
+	const child = await eb.launch(environment, {
 		extraArgs: [
 			`--remote-debugging-port=${debugPort}`,
 			'--remote-allow-origins=*',
