@@ -130,9 +130,10 @@ export async function exportBlueprint(
 
 	let result: ExportResult
 	try {
+		// Don't let the exporter save the blueprint back over the user's file.
 		result = await bridge.evaluate<ExportResult>(
 			rendererExport,
-			[],
+			[{ forceSave: false }],
 			config.exportTimeout * 1000
 		)
 	} catch (e) {

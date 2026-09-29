@@ -129,6 +129,10 @@ bun run build     # bundles src/ -> dist/index.cjs (committed; CI verifies it is
 `dist/index.cjs` is committed because a composite action runs straight from the
 checked-out repo. Rebuild it whenever `src/` changes.
 
+Other tools can drive Blockbench the same way by importing from
+`animated-java-ci/lib` (see [`src/lib.ts`](src/lib.ts)). Bun runs it straight
+from source, so it needs no build.
+
 ## License
 
 MIT

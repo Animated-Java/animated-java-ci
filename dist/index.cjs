@@ -11546,7 +11546,7 @@ function oneLine(message) {
 
 // src/blockbench.ts
 var delay = (ms) => new Promise((resolve2) => setTimeout(resolve2, ms));
-var ENVIRONMENT = "animated-java-ci";
+var DEFAULT_ENVIRONMENT = "animated-java-ci";
 function getFreePort() {
   return new Promise((resolve2, reject) => {
     const server = (0, import_node_net.createServer)();
@@ -11567,12 +11567,12 @@ function numericSemver(a, b2) {
   }
   return 0;
 }
-async function ensurePortable(eb, blockbenchVersion) {
-  if (await eb.environmentExists(ENVIRONMENT) !== "env") {
+async function ensurePortable(eb, environment, blockbenchVersion) {
+  if (await eb.environmentExists(environment) !== "env") {
     info(`Provisioning Blockbench (${blockbenchVersion}) via envbench...`);
     let lastPercent = -1;
     await eb.createEnvironment(
-      ENVIRONMENT,
+      environment,
       { blockbenchVersion, force: true },
       {
         onDownloadStart: (version2) => info(`Downloading Blockbench ${version2}`),
@@ -11586,7 +11586,7 @@ async function ensurePortable(eb, blockbenchVersion) {
       }
     );
   }
-  const env = await eb.getEnvironment(ENVIRONMENT);
+  const env = await eb.getEnvironment(environment);
   let version = "";
   try {
     version = await eb.resolveVersion(env.blockbench_version);
@@ -11604,10 +11604,10 @@ async function ensurePortable(eb, blockbenchVersion) {
   }
   return portable;
 }
-async function launchBlockbench(blockbenchVersion) {
+async function launchBlockbench(blockbenchVersion, environment = DEFAULT_ENVIRONMENT) {
   const eb = new se();
   await eb.ensureStorageFolder();
-  const userDataDir = (0, import_node_path2.join)(eb.storageDir, ENVIRONMENT);
+  const userDataDir = (0, import_node_path2.join)(eb.storageDir, environment);
   await killByUserData(userDataDir);
   for (const lock of ["SingletonLock", "SingletonSocket", "SingletonCookie"]) {
     try {
@@ -11615,10 +11615,10 @@ async function launchBlockbench(blockbenchVersion) {
     } catch {
     }
   }
-  await ensurePortable(eb, blockbenchVersion);
+  await ensurePortable(eb, environment, blockbenchVersion);
   grantFsPermission(userDataDir, "animated_java");
   const debugPort = await getFreePort();
-  const child = await eb.launch(ENVIRONMENT, {
+  const child = await eb.launch(environment, {
     extraArgs: [
       `--remote-debugging-port=${debugPort}`,
       "--remote-allow-origins=*",
@@ -12017,7 +12017,7 @@ async function rendererLoadBlueprint(blueprintPath, fileName, content) {
     }
   };
 }
-async function rendererExport() {
+async function rendererExport(options) {
   const g2 = globalThis;
   const aj = g2.window && g2.window.AnimatedJava || g2.AnimatedJava;
   if (!aj || typeof aj.exportProject !== "function") {
@@ -12043,7 +12043,7 @@ async function rendererExport() {
   let ok = false;
   let thrown = null;
   try {
-    ok = await aj.exportProject();
+    ok = await aj.exportProject(options || void 0);
   } catch (e) {
     thrown = e && (e.stack || e.message) || String(e);
   } finally {
@@ -12134,7 +12134,7 @@ async function exportBlueprint(bridge, blueprintPath, config) {
   try {
     result = await bridge.evaluate(
       rendererExport,
-      [],
+      [{ forceSave: false }],
       config.exportTimeout * 1e3
     );
   } catch (e) {

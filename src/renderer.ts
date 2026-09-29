@@ -32,6 +32,11 @@ export interface ExportResult {
 	messages: string[]
 }
 
+export interface ExportOptions {
+	/** Save the blueprint after exporting. Animated Java defaults this to `true`. */
+	forceSave?: boolean
+}
+
 export interface PluginLoadResult {
 	ok: boolean
 	error?: string | null
@@ -150,7 +155,7 @@ export async function rendererLoadBlueprint(
 	}
 }
 
-export async function rendererExport(): Promise<ExportResult> {
+export async function rendererExport(options: ExportOptions | null): Promise<ExportResult> {
 	const g = globalThis as any
 	const aj = (g.window && g.window.AnimatedJava) || g.AnimatedJava
 	if (!aj || typeof aj.exportProject !== 'function') {
@@ -184,7 +189,7 @@ export async function rendererExport(): Promise<ExportResult> {
 	let ok = false
 	let thrown: string | null = null
 	try {
-		ok = await aj.exportProject()
+		ok = await aj.exportProject(options || undefined)
 	} catch (e: any) {
 		thrown = (e && (e.stack || e.message)) || String(e)
 	} finally {
