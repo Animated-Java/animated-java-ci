@@ -12017,7 +12017,7 @@ async function rendererLoadBlueprint(blueprintPath, fileName, content) {
     }
   };
 }
-async function rendererExport() {
+async function rendererExport(options) {
   const g2 = globalThis;
   const aj = g2.window && g2.window.AnimatedJava || g2.AnimatedJava;
   if (!aj || typeof aj.exportProject !== "function") {
@@ -12043,7 +12043,7 @@ async function rendererExport() {
   let ok = false;
   let thrown = null;
   try {
-    ok = await aj.exportProject();
+    ok = await aj.exportProject(options || void 0);
   } catch (e) {
     thrown = e && (e.stack || e.message) || String(e);
   } finally {
@@ -12134,7 +12134,7 @@ async function exportBlueprint(bridge, blueprintPath, config) {
   try {
     result = await bridge.evaluate(
       rendererExport,
-      [],
+      [{ forceSave: false }],
       config.exportTimeout * 1e3
     );
   } catch (e) {
