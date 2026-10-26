@@ -11624,7 +11624,10 @@ async function launchBlockbench(blockbenchVersion, environment = DEFAULT_ENVIRON
       "--remote-allow-origins=*",
       // CI sandboxes usually disallow the AppImage's sandbox re-exec.
       "--no-sandbox",
-      "--disable-dev-shm-usage"
+      "--disable-dev-shm-usage",
+      // Stay on xvfb's X display even in a Wayland session, where an unseen window gets no
+      // animation frames and anything awaiting `requestAnimationFrame` hangs.
+      ...process.platform === "linux" ? ["--ozone-platform=x11"] : []
     ]
   });
   let logBuffer = "";
